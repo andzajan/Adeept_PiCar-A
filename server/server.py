@@ -11,7 +11,7 @@ import RPi.GPIO as GPIO
 from multiprocessing import Process
 import os
 import motor
-import car_dir 
+import car_dir
 import ultrasonic
 import auto
 import socket
@@ -60,8 +60,8 @@ print('left=%d\n'%left)
 print('right=%d\n'%right)
 
 status     = 1          #Motor rotation
-forward    = 0          #Motor forward
-backward   = 1          #Motor backward
+forward    = 1          #Motor forward
+backward   = 0          #Motor backward
 dis_dir    = []         #Result of Ultrasonic Scanning
 ip_con     = ''
 
@@ -148,7 +148,9 @@ def run():            #Main function
     vn=threading.Thread(target=video_net)   #Define a thread for connection
     vn.setDaemon(True)                      #'True' means it is a front thread,it would close when the mainloop() closes
     vn.start()                              #Thread starts
-
+    st = Job()
+    st.start()
+    st.pause()
     while True: 
         data = ''
         data = tcpCliSock.recv(BUFSIZ).decode()#Get instructions
@@ -208,7 +210,7 @@ def run():            #Main function
         elif 'scan' in data:
             dis_can=scan()                     #Start Scanning
 
-            str_list_1=dis_can[0:100]          #Divide the list to make it samller to send 
+            str_list_1=dis_can[0:100]          #Divide the list to make it samller to send
             str_index=' '                      #Separate the values by space
             str_send_1=str_index.join(str_list_1)+' '
             tcpCliSock.send(str(str_send_1))   #Send Part 1
@@ -258,22 +260,26 @@ def run():            #Main function
         
         elif 'left' in data:                   #When server receive "left" from client,camera turns left
             tcpCliSock.send('7')
-            car_dir.dir_left(pwm1)
+            #car_dir.dir_left(pwm1)
+            car_dir.dir_right(pwm1)
             continue
         
         elif 'right' in data:                  #When server receive "right" from client,camera turns right
             tcpCliSock.send('8')
-            car_dir.dir_right(pwm1)
+            #car_dir.dir_right(pwm1)
+            car_dir.dir_left(pwm1)
             continue
         
         elif 'on' in data:                     #When server receive "on" from client,camera looks up
             tcpCliSock.send('5')
-            car_dir.dir_Left(pwm0)
+            #car_dir.dir_Left(pwm0)
+            car_dir.dir_Right(pwm0)
             continue
         
         elif 'under' in data:                  #When server receive "under" from client,camera looks down
             tcpCliSock.send('6')
-            car_dir.dir_Right(pwm0)
+            #car_dir.dir_Right(pwm0)
+            car_dir.dir_Left(pwm0)
             continue
         
         elif 'Left' in data:                   #When server receive "Left" from client,car turns left
@@ -285,8 +291,8 @@ def run():            #Main function
 
         elif 'BLe' in data:                    #When server receive "BLeft" from client,car move back and left
             tcpCliSock.send('3')
-            motor.motor(status, 1, left*spd_ad)
-            motor.motor1(status, 1, b_spd*spd_ad)
+            motor.motor(status, backward, left*spd_ad)
+            motor.motor1(status, backward, b_spd*spd_ad)
             #print("BL")
             continue
 
@@ -324,15 +330,14 @@ def run():            #Main function
         elif 'Stop' in data:                   #When server receive "Stop" from client,Auto Mode switches off
             tcpCliSock.send('9')
             try:
-                st.stop()
+                st.pause()
             except:
                 pass
             motor.motorStop()
         
         elif 'auto' in data:                   #When server receive "auto" from client,start Auto Mode
             tcpCliSock.send('0')
-            st = Job()
-            st.start()
+            st.resume()
             continue
 
         elif 'IPCON' in data:
